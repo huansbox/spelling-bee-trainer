@@ -64,13 +64,13 @@
                 
                 <!-- 單字顯示區 (優化版) -->
                 <div class="mb-8">
-                    <div class="w-full h-64 md:h-80 eye-care-bg rounded-3xl flex items-center justify-center mb-4 relative overflow-hidden">
+                    <div class="w-full h-64 md:h-80 eye-care-bg rounded-3xl flex items-center justify-center mb-4 relative overflow-hidden px-2">
                         <!-- 背景裝飾圓圈，增加柔和感但不明顯 -->
                         <div class="absolute w-96 h-96 bg-blue-50 rounded-full -top-20 -left-20 opacity-50"></div>
                         <div class="absolute w-64 h-64 bg-indigo-50 rounded-full -bottom-10 -right-10 opacity-50"></div>
                         
-                        <!-- 核心單字 -->
-                        <h2 id="practice-word" class="relative z-10 text-7xl md:text-9xl font-bold text-gray-700 tracking-wide select-none">
+                        <!-- 核心單字：Class 將由 JS 動態控制以適應長度 -->
+                        <h2 id="practice-word" class="relative z-10 font-bold text-gray-700 tracking-wide select-none transition-all duration-300">
                             word
                         </h2>
                     </div>
@@ -396,7 +396,26 @@
             }
         }
 
-        // --- 7. Rendering & UI Switching ---
+        // --- 7. UI Helper: Font Size Scaling ---
+        function adjustFontSize(word) {
+            const el = document.getElementById('practice-word');
+            // Reset base classes
+            el.className = "relative z-10 font-bold text-gray-700 tracking-wide select-none transition-all duration-300";
+            
+            const len = word.length;
+            if (len <= 5) {
+                // 短單字 (ace)：維持巨大 (Mobile: 7xl, Desktop: 9xl)
+                el.classList.add('text-7xl', 'md:text-9xl');
+            } else if (len <= 8) {
+                // 中單字 (alphabet)：Mobile 縮小至 5xl, Desktop 維持大字 8xl
+                el.classList.add('text-5xl', 'md:text-8xl');
+            } else {
+                // 長單字 (strawberry)：Mobile 縮小至 4xl, Desktop 7xl
+                el.classList.add('text-4xl', 'md:text-7xl');
+            }
+        }
+
+        // --- 8. Rendering & UI Switching ---
         function switchMode(mode) {
             state.mode = mode;
             render();
@@ -449,9 +468,12 @@
         function renderPractice() {
             const word = getCurrentPracticeWord();
             document.getElementById('practice-word').innerText = word;
+            
+            // Dynamic Font Size Adjustment
+            adjustFontSize(word);
+
             document.getElementById('practice-counter').innerText = `${state.practiceCardIndex + 1}/${BATCH_SIZE}`;
             
-            // Removed Image rendering code completely for eye-safety single view
             // Dots
             const dotsContainer = document.getElementById('practice-dots');
             dotsContainer.innerHTML = '';
