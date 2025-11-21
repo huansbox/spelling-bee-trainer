@@ -19,6 +19,11 @@
         .mode-transition {
             transition: all 0.3s ease;
         }
+        /* 護眼專用：柔和的單字顯示區背景 */
+        .eye-care-bg {
+            background-color: #f8fafc; /* Slate-50 */
+            border: 3px solid #e2e8f0; /* Slate-200 */
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -57,11 +62,19 @@
             <div class="bg-white rounded-3xl p-8 card-shadow border-b-8 border-blue-200 text-center relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-4 bg-blue-400"></div>
                 
-                <!-- 圖片與單字 -->
+                <!-- 單字顯示區 (優化版) -->
                 <div class="mb-8">
-                    <img id="practice-img" src="" alt="Word Image" class="w-full h-48 md:h-64 object-cover rounded-2xl mb-6 bg-gray-100">
-                    <h2 id="practice-word" class="text-6xl md:text-8xl font-bold text-blue-600 tracking-wide mb-2">word</h2>
-                    <p class="text-gray-400 text-sm">單字卡 <span id="practice-counter">1/5</span></p>
+                    <div class="w-full h-64 md:h-80 eye-care-bg rounded-3xl flex items-center justify-center mb-4 relative overflow-hidden">
+                        <!-- 背景裝飾圓圈，增加柔和感但不明顯 -->
+                        <div class="absolute w-96 h-96 bg-blue-50 rounded-full -top-20 -left-20 opacity-50"></div>
+                        <div class="absolute w-64 h-64 bg-indigo-50 rounded-full -bottom-10 -right-10 opacity-50"></div>
+                        
+                        <!-- 核心單字 -->
+                        <h2 id="practice-word" class="relative z-10 text-7xl md:text-9xl font-bold text-gray-700 tracking-wide select-none">
+                            word
+                        </h2>
+                    </div>
+                    <p class="text-gray-400 text-sm font-medium">單字卡 <span id="practice-counter">1/5</span></p>
                 </div>
 
                 <!-- 播放控制 -->
@@ -438,11 +451,7 @@
             document.getElementById('practice-word').innerText = word;
             document.getElementById('practice-counter').innerText = `${state.practiceCardIndex + 1}/${BATCH_SIZE}`;
             
-            // Generate a deterministic random color based on word length for placeholder
-            const colors = ['2563eb', 'db2777', 'ca8a04', '16a34a', '9333ea'];
-            const color = colors[word.length % colors.length];
-            document.getElementById('practice-img').src = `https://placehold.co/600x400/${color}/white?text=${word}`;
-
+            // Removed Image rendering code completely for eye-safety single view
             // Dots
             const dotsContainer = document.getElementById('practice-dots');
             dotsContainer.innerHTML = '';
