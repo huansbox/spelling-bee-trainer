@@ -191,6 +191,30 @@
 
     </main>
 
+    <!-- 頁尾重置與匯出入功能 -->
+    <footer class="py-8 bg-gray-100 border-t border-gray-200 mt-auto">
+        <div class="max-w-4xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <div class="text-sm text-gray-500">
+                進度管理 (Data Management)
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="exportProgress()" class="bg-white border border-gray-300 text-gray-600 hover:text-blue-600 hover:border-blue-400 px-4 py-2 rounded-md text-sm transition-colors flex items-center gap-2">
+                    <i class="fas fa-file-export"></i> 匯出進度 (Export)
+                </button>
+                
+                <button onclick="importProgress()" class="bg-white border border-gray-300 text-gray-600 hover:text-blue-600 hover:border-blue-400 px-4 py-2 rounded-md text-sm transition-colors flex items-center gap-2">
+                    <i class="fas fa-file-import"></i> 匯入進度 (Import)
+                </button>
+            </div>
+
+            <button onclick="resetProgress()" class="text-gray-400 text-xs hover:text-red-500 transition-colors border-b border-transparent hover:border-red-500 pb-1 mt-2 md:mt-0">
+                <i class="fas fa-trash-alt mr-1"></i> 重置 (Reset)
+            </button>
+        </div>
+    </footer>
+
     <script>
         // --- 1. Data Source ---
         const fullWordList = [
@@ -222,6 +246,8 @@
 
         // --- 2. State Management ---
         const BATCH_SIZE = 5;
+        const STORAGE_KEY = 'spelling_bee_progress_v1';
+
         let state = {
             currentBatchIndex: 0, // 0 to 19
             mode: 'practice', // 'practice' or 'rehearsal'
@@ -234,10 +260,115 @@
             currentRehearsalWord: null,
         };
 
-        // --- 3. Initialization ---
+        // --- 3. Initialization & Storage ---
         function init() {
-            loadBatch(0);
+            if (!loadProgress()) {
+                loadBatch(0);
+            }
             render();
+
+            // If loading into rehearsal mode, ensure UI state is correct
+            if (state.mode === 'rehearsal') {
+                 // Check if batch is complete
+                 if (state.rehearsalQueue.every(i => i.status === 'ok')) {
+                     showRehearsalComplete();
+                 } else {
+                     // Pick a word if needed
+                     if (!state.currentRehearsalWord) {
+                         pickNextRehearsalWord();
+                     }
+                     // Ensure correct view is shown (Question vs Answer)
+                     // Default to Question step when resuming
+                     document.getElementById('rehearsal-step-question').classList.remove('hidden');
+                     document.getElementById('rehearsal-step-answer').classList.add('hidden');
+                     document.getElementById('rehearsal-step-complete').classList.add('hidden');
+                 }
+            }
+        }
+
+        function saveProgress() {
+            const dataToSave = {
+                currentBatchIndex: state.currentBatchIndex,
+                rehearsalQueue: state.rehearsalQueue,
+                mode: state.mode
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        }
+
+        function loadProgress() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (!savedData) return false;
+
+            try {
+                const parsed = JSON.parse(savedData);
+                
+                // Basic validation
+                if (typeof parsed.currentBatchIndex !== 'number') return false;
+
+                state.currentBatchIndex = parsed.currentBatchIndex;
+                state.mode = parsed.mode || 'practice';
+                
+                // Restore Queue
+                if (Array.isArray(parsed.rehearsalQueue) && parsed.rehearsalQueue.length > 0) {
+                    state.rehearsalQueue = parsed.rehearsalQueue;
+                } else {
+                    // Fallback: reload queue from list
+                    const start = state.currentBatchIndex * BATCH_SIZE;
+                    const end = start + BATCH_SIZE;
+                    state.rehearsalQueue = fullWordList.slice(start, end).map(w => ({ word: w, status: 'pending' }));
+                }
+
+                return true;
+            } catch (e) {
+                console.error("Failed to load progress", e);
+                return false;
+            }
+        }
+
+        function resetProgress() {
+            if (confirm('確定要重置所有進度嗎？這將會清除所有的學習紀錄，回到第一個單字。')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        }
+
+        // --- Export / Import Logic ---
+        function exportProgress() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (!data) {
+                alert("目前沒有進度可匯出。");
+                return;
+            }
+            // Encode to Base64 to allow easy copy-pasting without formatting issues
+            // Using encodeURIComponent to handle any potential unicode characters safely
+            const token = btoa(encodeURIComponent(data));
+            
+            // Try to copy to clipboard automatically
+            navigator.clipboard.writeText(token).then(() => {
+                alert("✅ 進度代碼已複製到剪貼簿！\n\n請在另一台裝置點選「匯入進度」並貼上此代碼。");
+            }).catch(err => {
+                // Fallback if auto-copy fails
+                prompt("請手動複製以下代碼：", token);
+            });
+        }
+
+        function importProgress() {
+            const token = prompt("請貼上進度代碼：");
+            if (!token) return;
+            
+            try {
+                const jsonStr = decodeURIComponent(atob(token));
+                const data = JSON.parse(jsonStr);
+                
+                // Simple validation
+                if (typeof data.currentBatchIndex !== 'number') throw new Error("Invalid data");
+                
+                localStorage.setItem(STORAGE_KEY, jsonStr);
+                alert("✅ 匯入成功！網頁將重新整理以載入新進度。");
+                location.reload();
+            } catch (e) {
+                alert("❌ 代碼格式錯誤，無法匯入。\n請確認代碼是否完整複製。");
+            }
         }
 
         function loadBatch(batchIndex) {
@@ -250,9 +381,10 @@
             const batchWords = fullWordList.slice(start, end);
 
             // Initialize Queue for Rehearsal
-            // We add words to queue.
-            // REMOVED SHUFFLE: Strict order maintained (ace -> actor -> almond...) as per rules
+            // Strict order maintained (ace -> actor -> almond...) as per rules
             state.rehearsalQueue = batchWords.map(w => ({ word: w, status: 'pending' }));
+            
+            saveProgress(); // Save initial batch state
         }
 
         // --- 4. Core Logic: TTS ---
@@ -270,14 +402,6 @@
             const word = getCurrentPracticeWord();
             // Pattern: Word ... (1s) ... Word
             speakText(word);
-            
-            // A hacky way to pause between words since pause() pauses the engine
-            // We create a silent utterance or just use setTimeout logic if we weren't blocking UI.
-            // Better approach for simplicity: separate calls with logic.
-            // Actually, simpler: Just queue them.
-            
-            // Create a slight pause using an empty utterance doesn't always work. 
-            // Let's use setTimeout for the second word.
             setTimeout(() => {
                 speakText(word);
             }, 1500);
@@ -374,6 +498,7 @@
                 state.rehearsalQueue.push(currentItem);
             }
 
+            saveProgress(); // SAVE PROGRESS ON RATING
             pickNextRehearsalWord(); // Go to next
             renderRehearsalStats(); // Update counters
         }
@@ -418,6 +543,7 @@
         // --- 8. Rendering & UI Switching ---
         function switchMode(mode) {
             state.mode = mode;
+            saveProgress(); // SAVE MODE PREFERENCE
             render();
             
             // If switching to rehearsal, ensure a word is picked
