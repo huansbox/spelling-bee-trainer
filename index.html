@@ -237,18 +237,9 @@
             const batchWords = fullWordList.slice(start, end);
 
             // Initialize Queue for Rehearsal
-            // We add words to queue. If restarting, we could potentially keep old "hard" words from previous batches if we wanted spaced repetition across batches, but for now let's stick to strict batch unlocking.
+            // We add words to queue.
+            // REMOVED SHUFFLE: Strict order maintained (ace -> actor -> almond...) as per rules
             state.rehearsalQueue = batchWords.map(w => ({ word: w, status: 'pending' }));
-            
-            shuffleQueue(); // Randomize order for rehearsal
-        }
-
-        function shuffleQueue() {
-            // Fisher-Yates shuffle
-            for (let i = state.rehearsalQueue.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [state.rehearsalQueue[i], state.rehearsalQueue[j]] = [state.rehearsalQueue[j], state.rehearsalQueue[i]];
-            }
         }
 
         // --- 4. Core Logic: TTS ---
