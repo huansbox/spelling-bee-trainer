@@ -23,10 +23,21 @@
 - 三種評分：不熟（重考）、還可以（保留）、OK（完成）
 - 全組完成後可解鎖下一組
 
+### 進度管理
+- 組別選擇器：下拉選單可跳回已解鎖的組別複習
+- 進度條：顯示整體解鎖進度（非當前組別）
+- 匯出/匯入：Base64 編碼的進度代碼，支援跨裝置同步
+
 ## 資料結構
 - `fullWordList`：100 個單字陣列
 - `BATCH_SIZE`：每組 5 個
-- `state` 物件管理：當前組別、模式、練習索引、預演佇列
+- `STORAGE_KEY`：`spelling_bee_progress_v2`（含 v1 自動遷移）
+- `state` 物件管理：
+  - `currentBatchIndex`：當前檢視的組別
+  - `maxUnlockedBatchIndex`：最高解鎖進度
+  - `mode`：練習/預演模式
+  - `practiceCardIndex`：練習模式索引
+  - `rehearsalQueue`：預演佇列
 
 ## 部署
 - GitHub Pages：https://huansbox.github.io/spelling-bee-trainer/
