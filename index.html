@@ -689,10 +689,11 @@
                 wordList.forEach(w => {
                     const stats = wordsObj[w];
                     const count = stats.view + stats.test;
+                    const batchIndex = Math.floor(fullWordList.indexOf(w) / BATCH_SIZE) + 1; // Calc batch index
                     const tag = document.createElement('span');
                     const colorClass = stats.test > 0 ? "bg-orange-50 text-orange-700 border-orange-100" : "bg-blue-50 text-blue-700 border-blue-100";
                     tag.className = `text-xs border px-2 py-0.5 rounded ${colorClass}`;
-                    tag.innerText = `${w} x${count}`;
+                    tag.innerText = `${w} (${batchIndex}) x${count}`; // Added batch index
                     tags.appendChild(tag);
                 });
                 card.appendChild(tags);
@@ -726,6 +727,7 @@
             rankingData.forEach(item => {
                 const row = document.createElement('div');
                 row.className = "flex justify-between items-center p-2 hover:bg-gray-50 rounded border-b border-gray-100 last:border-0";
+                const batchIndex = Math.floor(fullWordList.indexOf(item.word) / BATCH_SIZE) + 1; // Calc batch index
                 
                 // Color code based on count
                 let badgeClass = "bg-gray-100 text-gray-600";
@@ -735,7 +737,10 @@
                 else badgeClass = "bg-red-50 text-red-400"; // Zero practice
 
                 row.innerHTML = `
-                    <span class="text-gray-800 font-medium">${item.word}</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-gray-800 font-medium">${item.word}</span>
+                        <span class="text-xs text-gray-400">(${batchIndex})</span>
+                    </div>
                     <span class="text-xs font-bold px-2 py-1 rounded-full ${badgeClass}">
                         ${item.count} 次
                     </span>
